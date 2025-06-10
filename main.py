@@ -23,14 +23,18 @@ env = gym.make('ALE/Breakout-v5',render_mode="human")
 # env.action_space.seed(42)
 # observation, info = env.reset(seed=42)
 
+env = gym.wrappers.GrayscaleObservation(env)
+env = gym.wrappers.ResizeObservation(env, (84, 84))
+# env = gym.wrappers.AtariPreprocessing(env)
 env = gym.wrappers.FrameStackObservation(env, 4) #store the last 4 frames in a stack
+print(env.observation_space.shape)
 
 ######### setting up the neural net
 
 model = keras.Sequential(
     [
         #necessary for CPU implementation, from [1]
-        Lambda(lambda tensor: tf.transpose(tensor, [0, 2, 3, 1]), output_shape=(84, 84, 4), input_shape=(4, 84, 84)),
+        # Lambda(lambda tensor: tf.transpose(tensor, [0, 2, 3, 1]), output_shape=(84, 84, 4), input_shape=(4, 84, 84)),
 
         #quotes from DeepMind paper [2]
         #"The first hidden layer convolves 32 filters of 8×8 with stride 4 with the input image and applies a rectifier nonlinearity." 
@@ -78,6 +82,7 @@ for _ in range(MAX_PLAYS):
         
         memory.append([prev_state,cur_state,reward,dead,action])
     
+    print(cur_state)
     print(score)
     all_scores.append(score)
 

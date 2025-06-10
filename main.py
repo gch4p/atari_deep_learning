@@ -12,13 +12,14 @@ import tensorflow as tf
 from tensorflow import keras
 from keras.layers import Conv2D,Dense,Flatten,Lambda
 from keras import Sequential
+from collections import deque
 
 gym.envs.registry.keys()
 
 gym.register_envs(ale_py)
 
 env = gym.make('ALE/Breakout-v5',render_mode="human")
-
+ 
 # env.action_space.seed(42)
 # observation, info = env.reset(seed=42)
 
@@ -58,16 +59,24 @@ MAX_FRAMES = 1000
 MAX_PLAYS = 2
 all_scores = []
 
+MAX_MEM = int(MAX_FRAMES / 10)
+INIT_MEM = int(MAX_FRAMES / 100)
+memory = deque(maxlen=MAX_MEM)
+
 for _ in range(MAX_PLAYS):
-    env.reset()
+    prev_state = env.reset()
     dead = False
     score = 0
 
     while not dead:
         # env.render()
+        
+        action = env.action_space.sample()
 
-        observation, reward, dead, _, _ = env.step(env.action_space.sample())
+        cur_state, reward, dead, _, _ = env.step(action)
         score += reward
+        
+        memory.append([prev_state,cur_state,reward,dead,action])
     
     print(score)
     all_scores.append(score)

@@ -9,10 +9,12 @@ Resources used:
 import gymnasium as gym
 import ale_py
 import tensorflow as tf
+import numpy as np
 from tensorflow import keras
 from keras.layers import Conv2D,Dense,Flatten,Lambda
 from keras import Sequential
 from collections import deque
+import random
 
 gym.envs.registry.keys()
 
@@ -34,7 +36,7 @@ print(env.observation_space.shape)
 model = keras.Sequential(
     [
         #necessary for CPU implementation, from [1]
-        # Lambda(lambda tensor: tf.transpose(tensor, [0, 2, 3, 1]), output_shape=(84, 84, 4), input_shape=(4, 84, 84)),
+        Lambda(lambda tensor: tf.transpose(tensor, [0, 2, 3, 1]), output_shape=(84, 84, 4), input_shape=(4, 84, 84)),
 
         #quotes from DeepMind paper [2]
         #"The first hidden layer convolves 32 filters of 8×8 with stride 4 with the input image and applies a rectifier nonlinearity." 
@@ -59,6 +61,23 @@ model.compile(loss="mse", optimizer=rms)
 #     if terminated or truncated:
 #         observation, info = env.reset()
 
+def choose_action(epsilon,cur_state):
+    min_epsilon = .2
+    
+    if len(memory) < INIT_MEM:
+        #prefill with random events
+        action = env.action_space.sample() 
+        return action,epsilon
+    
+    if random.random() < epsilon:
+        #explore!
+        action = env.action_space.sample()
+        epsilon = max(min_epsilon,epsilon*.99)
+    else:
+        action = np.argmax(model.predict(np.expand_dims(cur_state, axis=0)))
+        
+    return action,epsilon
+
 MAX_FRAMES = 1000
 MAX_PLAYS = 2
 all_scores = []
@@ -67,22 +86,25 @@ MAX_MEM = int(MAX_FRAMES / 10)
 INIT_MEM = int(MAX_FRAMES / 100)
 memory = deque(maxlen=MAX_MEM)
 
-for _ in range(MAX_PLAYS):
+epsilon = .99
+
+for i in range(MAX_PLAYS):
     prev_state = env.reset()
+    cur_state = prev_state[0]
     dead = False
     score = 0
 
     while not dead:
         # env.render()
         
-        action = env.action_space.sample()
-
+        action,epsilon = choose_action(epsilon,cur_state)
+        prev_state = cur_state
         cur_state, reward, dead, _, _ = env.step(action)
-        score += reward
         
-        memory.append([prev_state,cur_state,reward,dead,action])
+        score += reward
+        memory.append([np.expand_dims(prev_state[0], axis=0),np.expand_dims(cur_state[0], axis=0),reward,dead,action])
     
-    print(cur_state)
+    # print(cur_state)
     print(score)
     all_scores.append(score)
 

@@ -102,7 +102,7 @@ for i in range(MAX_PLAYS):
         cur_state, reward, dead, _, _ = env.step(action)
         
         score += reward
-        memory.append([np.expand_dims(prev_state[0], axis=0),np.expand_dims(cur_state[0], axis=0),reward,dead,action])
+        memory.append([prev_state,cur_state,reward,dead,action])
     
     # print(cur_state)
     print(score)

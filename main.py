@@ -49,10 +49,11 @@ model = keras.Sequential(
     ]
 )
 
+target = model
+
 rms = tf.keras.optimizers.RMSprop()
 model.compile(loss="mse", optimizer=rms)
 
-target = model
 
 ######### 
 
@@ -81,23 +82,38 @@ def choose_action(epsilon,cur_state):
     return action,epsilon
 
 def optimize_network(memory,model,target):
-    bs = 64
+    bs = 32 #keras model.fit() default
     
-    batch = random.sample(memory)
+    batch = random.sample(memory,bs)
+    states = []
+    estimated_rewards = []
     
-    for prev_state,next_state,reward,dead,action in batch:
+    for prev_state,cur_state,reward,dead,action_taken in batch:
         prev_state = np.expand_dims(prev_state, axis=0)
         cur_state = np.expand_dims(cur_state, axis=0)
         
-        chosen_action = np.argmax(model.predict(cur_state))
-        #add double-Q model here
+        predicted_best_action = np.argmax(model.predict(cur_state))
+        #base reward + estimated reward based on the action which was taken
+        estimated_score = reward + target.predict(cur_state)[0][predicted_best_action] 
         
+        possible_scores = model.predict(prev_state)[0]
+        possible_scores[action_taken] = estimated_score
         
-
+        states.append(prev_state)
+        estimated_rewards.append(possible_scores)
         
-
+    inputs = np.array(states)
+    outputs = np.array(estimated_rewards)    
+    
+    #indexing magic to drop the useless second dimension 
+    inputs = inputs[:,0,:,:,:]
+    # test2 = test2[:,0,:,:]
+    
+    # model.fit(np.array(states),np.array(estimated_rewards),epochs=1,batch_size=bs)
+    model.fit(inputs,outputs,epochs=1)
+        
 MAX_FRAMES = 1000
-MAX_PLAYS = 2
+MAX_PLAYS = 10
 all_scores = []
 
 MAX_MEM = int(MAX_FRAMES / 10)
@@ -131,7 +147,7 @@ for i in range(MAX_PLAYS):
     print(score)
     all_scores.append(score)
 
-# print(all_scores)
+print(all_scores)
 
 env.close()
 

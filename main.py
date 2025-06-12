@@ -91,10 +91,13 @@ def optimize_network(memory,model,target):
     for prev_state,cur_state,reward,dead,action_taken in batch:
         prev_state = np.expand_dims(prev_state, axis=0)
         cur_state = np.expand_dims(cur_state, axis=0)
+
+        estimated_score = reward
         
-        predicted_best_action = np.argmax(model.predict(cur_state))
+        if not dead:
+            predicted_best_action = np.argmax(model.predict(cur_state))
         #base reward + estimated reward based on the action which was taken
-        estimated_score = reward + target.predict(cur_state)[0][predicted_best_action] 
+            estimated_score = reward + target.predict(cur_state)[0][predicted_best_action] 
         
         possible_scores = model.predict(prev_state)[0]
         possible_scores[action_taken] = estimated_score
@@ -112,8 +115,8 @@ def optimize_network(memory,model,target):
     # model.fit(np.array(states),np.array(estimated_rewards),epochs=1,batch_size=bs)
     model.fit(inputs,outputs,epochs=1)
         
-MAX_FRAMES = 1000
-MAX_PLAYS = 10
+MAX_FRAMES = 10000
+MAX_PLAYS = 50
 all_scores = []
 
 MAX_MEM = int(MAX_FRAMES / 10)
@@ -143,6 +146,15 @@ for i in range(MAX_PLAYS):
         steps = steps + 1
         
     optimize_network(memory,model,target)
+    
+    if steps >= STEPS_PER_TARGET_UPDATE:
+        steps = 0
+        target.set_weights(model.get_weights())
+        
+        np.save('scores.txt',all_scores)
+        model.save('model.keras')
+        
+    
     # print(cur_state)
     print(score)
     all_scores.append(score)

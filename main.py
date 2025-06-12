@@ -52,6 +52,8 @@ model = keras.Sequential(
 rms = tf.keras.optimizers.RMSprop()
 model.compile(loss="mse", optimizer=rms)
 
+target = model
+
 ######### 
 
 
@@ -78,6 +80,22 @@ def choose_action(epsilon,cur_state):
         
     return action,epsilon
 
+def optimize_network(memory,model,target):
+    bs = 64
+    
+    batch = random.sample(memory)
+    
+    for prev_state,next_state,reward,dead,action in batch:
+        prev_state = np.expand_dims(prev_state, axis=0)
+        cur_state = np.expand_dims(cur_state, axis=0)
+        
+        chosen_action = np.argmax(model.predict(cur_state))
+        #add double-Q model here
+        
+        
+
+        
+
 MAX_FRAMES = 1000
 MAX_PLAYS = 2
 all_scores = []
@@ -87,7 +105,9 @@ INIT_MEM = int(MAX_FRAMES / 100)
 memory = deque(maxlen=MAX_MEM)
 
 epsilon = .99
+STEPS_PER_TARGET_UPDATE = int(MAX_FRAMES / 500)
 
+steps = 0
 for i in range(MAX_PLAYS):
     prev_state = env.reset()
     cur_state = prev_state[0]
@@ -103,7 +123,10 @@ for i in range(MAX_PLAYS):
         
         score += reward
         memory.append([prev_state,cur_state,reward,dead,action])
-    
+        
+        steps = steps + 1
+        
+    optimize_network(memory,model,target)
     # print(cur_state)
     print(score)
     all_scores.append(score)

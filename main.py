@@ -75,7 +75,7 @@ def choose_action(epsilon,cur_state):
     if random.random() < epsilon:
         #explore!
         action = env.action_space.sample()
-        epsilon = max(min_epsilon,epsilon*.99)
+        epsilon = max(min_epsilon,epsilon*.999)
     else:
         action = np.argmax(model.predict(np.expand_dims(cur_state, axis=0)))
         
@@ -113,7 +113,7 @@ def optimize_network(memory,model,target):
     # test2 = test2[:,0,:,:]
     
     # model.fit(np.array(states),np.array(estimated_rewards),epochs=1,batch_size=bs)
-    model.fit(inputs,outputs,epochs=1)
+    model.fit(inputs,outputs,epochs=1,verbose=2)
         
 MAX_FRAMES = 10000
 MAX_PLAYS = 50

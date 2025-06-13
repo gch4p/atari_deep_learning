@@ -16,6 +16,8 @@ from keras import Sequential
 from collections import deque
 import random
 
+tf.config.optimizer.set_jit(True)
+
 gym.envs.registry.keys()
 
 gym.register_envs(ale_py)
@@ -75,14 +77,16 @@ def choose_action(epsilon,cur_state):
     if random.random() < epsilon:
         #explore!
         action = env.action_space.sample()
-        epsilon = max(min_epsilon,epsilon*.999)
+        epsilon = max(min_epsilon,epsilon*.9955)
     else:
         action = np.argmax(model.predict(np.expand_dims(cur_state, axis=0)))
         
     return action,epsilon
 
 def optimize_network(memory,model,target):
-    bs = 32 #keras model.fit() default
+    bs = 16 #32 is keras model.fit() default
+    if len(memory) < bs:
+        return
     
     batch = random.sample(memory,bs)
     states = []
@@ -95,11 +99,11 @@ def optimize_network(memory,model,target):
         estimated_score = reward
         
         if not dead:
-            predicted_best_action = np.argmax(model.predict(cur_state))
+            predicted_best_action = np.argmax(model.predict(cur_state,verbose=0))
         #base reward + estimated reward based on the action which was taken
-            estimated_score = reward + target.predict(cur_state)[0][predicted_best_action] 
+            estimated_score = reward + target.predict(cur_state,verbose=0)[0][predicted_best_action] 
         
-        possible_scores = model.predict(prev_state)[0]
+        possible_scores = model.predict(prev_state,verbose=0)[0]
         possible_scores[action_taken] = estimated_score
         
         states.append(prev_state)
@@ -116,7 +120,7 @@ def optimize_network(memory,model,target):
     model.fit(inputs,outputs,epochs=1,verbose=2)
         
 MAX_FRAMES = 10000
-MAX_PLAYS = 50
+MAX_PLAYS = 100
 all_scores = []
 
 MAX_MEM = int(MAX_FRAMES / 10)
@@ -145,14 +149,16 @@ for i in range(MAX_PLAYS):
         
         steps = steps + 1
         
-    optimize_network(memory,model,target)
-    
-    if steps >= STEPS_PER_TARGET_UPDATE:
-        steps = 0
-        target.set_weights(model.get_weights())
+        optimize_network(memory,model,target)
         
-        np.save('scores.txt',all_scores)
-        model.save('model.keras')
+        if steps >= STEPS_PER_TARGET_UPDATE:
+            steps = 0
+            target.set_weights(model.get_weights())
+            
+            np.savetxt('scores.txt',all_scores)
+            model.save('model.keras')
+            print("saved training model")
+    
         
     
     # print(cur_state)

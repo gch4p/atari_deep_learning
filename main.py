@@ -129,6 +129,8 @@ memory = deque(maxlen=MAX_MEM)
 
 epsilon = .99
 STEPS_PER_TARGET_UPDATE = int(MAX_FRAMES / 500)
+NUM_MODELS_TO_SAVE = 20
+frames_per_save = int(MAX_FRAMES / NUM_MODELS_TO_SAVE)
 
 steps = 0
 frames = 0
@@ -160,6 +162,9 @@ while frames < MAX_FRAMES:
             np.savetxt('scores.txt',all_scores)
             model.save('model.keras')
             print("saved training model")
+
+        if frames % frames_per_save == 0:
+            target.save(f'model_{int(frames/frames_per_save)}.keras')
     
         
     

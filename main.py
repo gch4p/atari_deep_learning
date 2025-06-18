@@ -120,7 +120,7 @@ def optimize_network(memory,model,target):
     model.fit(inputs,outputs,epochs=1,verbose=2)
         
 MAX_FRAMES = 10000
-MAX_PLAYS = 100
+# MAX_PLAYS = 100
 all_scores = []
 
 MAX_MEM = int(MAX_FRAMES / 10)
@@ -131,7 +131,8 @@ epsilon = .99
 STEPS_PER_TARGET_UPDATE = int(MAX_FRAMES / 500)
 
 steps = 0
-for i in range(MAX_PLAYS):
+frames = 0
+while frames < MAX_FRAMES:
     prev_state = env.reset()
     cur_state = prev_state[0]
     dead = False
@@ -148,6 +149,7 @@ for i in range(MAX_PLAYS):
         memory.append([prev_state,cur_state,reward,dead,action])
         
         steps = steps + 1
+        frames = frames + 1
         
         optimize_network(memory,model,target)
         
